@@ -1665,10 +1665,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi=hemi, surf=surface,
-                      title=title, cortex=cortex, size=size,
+                      title=title, size=size,
                       background=background, foreground=foreground,
-                      figure=figure, subjects_dir=subjects_dir,
-                      views=views)
+                      subjects_dir=subjects_dir, views=views)
 
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1

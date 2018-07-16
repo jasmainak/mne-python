@@ -1470,7 +1470,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='auto', time_label='auto', smoothing_steps=10,
              transparent=None, alpha=1.0, time_viewer=False, subjects_dir=None,
-             figure=None, views='lat', colorbar=True, clim='auto',
+             figure=None, views=['lateral'], colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
              foreground="white", initial_time=None, time_unit='s',
              backend='auto', spacing='oct6'):
