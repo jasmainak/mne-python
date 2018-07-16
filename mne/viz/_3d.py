@@ -1633,7 +1633,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              figure=figure, initial_time=initial_time,
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer)
-    from surfer import Brain, TimeViewer
+    from vismne import Brain
     initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time)
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
@@ -1691,8 +1691,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     if initial_time is not None:
         brain.set_time(initial_time)
-    if time_viewer:
-        TimeViewer(brain)
     return brain
 
 
