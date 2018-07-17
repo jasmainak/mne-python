@@ -1615,16 +1615,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         raise ValueError("backend must be 'auto', 'mayavi' or 'matplotlib'. "
                          "Got %s." % backend)
     plot_mpl = backend == 'matplotlib'
-    if not plot_mpl:
-        try:
-            import mayavi
-        except ImportError:
-            if backend == 'auto':
-                warn('Mayavi not found. Resorting to matplotlib 3d.')
-                plot_mpl = True
-            else:  # 'mayavi'
-                raise
 
+    plot_mpl = False
     if plot_mpl:
         return _plot_mpl_stc(stc, subject=subject, surface=surface, hemi=hemi,
                              colormap=colormap, time_label=time_label,
@@ -1634,24 +1626,18 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer)
     from vismne import Brain
-    initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time)
+    # initial_time = 0.
+    # initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time)
+    ad_kwargs = {'initial_time': initial_time}
+    # sd_kwargs = {'initial_time': initial_time}
+
+    print(initial_time)
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
                          'or "both"')
 
     # check `figure` parameter (This will be performed by PySurfer > 0.6)
-    if figure is not None:
-        if isinstance(figure, int):
-            # use figure with specified id
-            size_ = size if isinstance(size, (tuple, list)) else (size, size)
-            figure = [mayavi.mlab.figure(figure, size=size_)]
-        elif not isinstance(figure, (list, tuple)):
-            figure = [figure]
-        for f in figure:
-            _validate_type(f, mayavi.core.scene.Scene, "figure",
-                           "mayavi scene or list of scenes")
-
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
     ctrl_pts, colormap, scale_pts, transparent = _limits_to_control_points(
@@ -1663,33 +1649,35 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         hemis = [hemi]
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
-    with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi=hemi, surf=surface,
-                      title=title, size=size,
-                      background=background, foreground=foreground,
-                      subjects_dir=subjects_dir, views=views)
 
-    for hemi in hemis:
-        hemi_idx = 0 if hemi == 'lh' else 1
-        if hemi_idx == 0:
-            data = stc.data[:len(stc.vertices[0])]
-        else:
-            data = stc.data[len(stc.vertices[0]):]
-        vertices = stc.vertices[hemi_idx]
-        if len(data) > 0:
-            with warnings.catch_warnings(record=True):  # traits warnings
-                brain.add_data(data, colormap=colormap, vertices=vertices,
-                               smoothing_steps=smoothing_steps, time=times,
-                               time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar, min=0, max=1, **ad_kwargs)
+    brain = Brain(subject, hemi=hemi, surf=surface,
+                  title=title, size=size,
+                  background=background, foreground=foreground,
+                  subjects_dir=subjects_dir, views=views)
 
-        # scale colormap and set time (index) to display
-        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], transparent=transparent,
-                                  **sd_kwargs)
+    data = stc.data[:len(stc.vertices[0])]
+    brain.add_data(data, colormap=colormap, vertices=stc.vertices[0],
+                   smoothing_steps=smoothing_steps, time=times,
+                   time_label=time_label, alpha=alpha, hemi='lh',
+                   colorbar=colorbar, min=0, max=1, **ad_kwargs)
 
-    if initial_time is not None:
-        brain.set_time(initial_time)
+    # for hemi in hemis:
+    #     hemi_idx = 0 if hemi == 'lh' else 1
+    #     if hemi_idx == 0:
+    #         data = stc.data[:len(stc.vertices[0])]
+    #     else:
+    #         data = stc.data[len(stc.vertices[0]):]
+    #     vertices = stc.vertices[hemi_idx]
+    #     if len(data) > 0:
+    #             brain.add_data(data, colormap=colormap, vertices=vertices,
+    #                            smoothing_steps=smoothing_steps, time=times,
+    #                            time_label=time_label, alpha=alpha, hemi=hemi,
+    #                            colorbar=colorbar, min=0, max=1, **ad_kwargs)
+
+    #     # scale colormap and set time (index) to display
+    brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
+                              fmax=scale_pts[2], transparent=transparent)
+
     return brain
 
 

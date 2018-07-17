@@ -48,6 +48,9 @@ kwargs = dict(initial_time=0.08, hemi='both', subjects_dir=subjects_dir,
 
 stc = abs(apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True))
 brain = stc.plot(figure=1, **kwargs)
+brain.show()
+
+"""
 brain.add_text(0.1, 0.9, 'MNE', 'title', font_size=14)
 
 
@@ -110,3 +113,4 @@ brain.add_text(0.1, 0.9, 'sLORETA', 'title', font_size=14)
 stc = apply_inverse(evoked, inv, lambda2, 'eLORETA', verbose=True)
 brain = stc.plot(figure=8, **kwargs)
 brain.add_text(0.1, 0.9, 'eLORETA', 'title', font_size=14)
+"""
