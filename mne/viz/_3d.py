@@ -1607,6 +1607,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     """  # noqa: E501
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
+    from vismne import Brain
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
@@ -1625,13 +1626,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              figure=figure, initial_time=initial_time,
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer)
-    from vismne import Brain
-    # initial_time = 0.
-    # initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time)
     ad_kwargs = {'initial_time': initial_time}
-    # sd_kwargs = {'initial_time': initial_time}
-
-    print(initial_time)
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
@@ -1655,24 +1650,18 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                   background=background, foreground=foreground,
                   subjects_dir=subjects_dir, views=views)
 
-    data = stc.data[:len(stc.vertices[0])]
-    brain.add_data(data, colormap=colormap, vertices=stc.vertices[0],
-                   smoothing_steps=smoothing_steps, time=times,
-                   time_label=time_label, alpha=alpha, hemi='lh',
-                   colorbar=colorbar, min=0, max=1, **ad_kwargs)
-
-    # for hemi in hemis:
-    #     hemi_idx = 0 if hemi == 'lh' else 1
-    #     if hemi_idx == 0:
-    #         data = stc.data[:len(stc.vertices[0])]
-    #     else:
-    #         data = stc.data[len(stc.vertices[0]):]
-    #     vertices = stc.vertices[hemi_idx]
-    #     if len(data) > 0:
-    #             brain.add_data(data, colormap=colormap, vertices=vertices,
-    #                            smoothing_steps=smoothing_steps, time=times,
-    #                            time_label=time_label, alpha=alpha, hemi=hemi,
-    #                            colorbar=colorbar, min=0, max=1, **ad_kwargs)
+    for hemi in hemis:
+        hemi_idx = 0 if hemi == 'lh' else 1
+        if hemi_idx == 0:
+            data = stc.data[:len(stc.vertices[0])]
+        else:
+            data = stc.data[len(stc.vertices[0]):]
+        vertices = stc.vertices[hemi_idx]
+        if len(data) > 0:
+                brain.add_data(data, colormap=colormap, vertices=vertices,
+                               smoothing_steps=smoothing_steps, time=times,
+                               time_label=time_label, alpha=alpha, hemi=hemi,
+                               colorbar=colorbar, min=0, max=1, **ad_kwargs)
 
     #     # scale colormap and set time (index) to display
     brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
