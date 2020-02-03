@@ -218,17 +218,17 @@ def _convert_channel_info(res4, t, use_eeg_pos):
             # Set the coil type
             if cch['sensor_type_index'] == CTF.CTFV_REF_MAG_CH:
                 ch['kind'] = FIFF.FIFFV_REF_MEG_CH
-                _check_comp_ch(cch, 'Reference magnetometer')
+                # _check_comp_ch(cch, 'Reference magnetometer')
                 ch['coil_type'] = FIFF.FIFFV_COIL_CTF_REF_MAG
                 nref += 1
                 ch['logno'] = nref
             elif cch['sensor_type_index'] == CTF.CTFV_REF_GRAD_CH:
                 ch['kind'] = FIFF.FIFFV_REF_MEG_CH
                 if off_diag:
-                    _check_comp_ch(cch, 'Reference off-diagonal gradiometer')
+                    # _check_comp_ch(cch, 'Reference off-diagonal gradiometer')
                     ch['coil_type'] = FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD
                 else:
-                    _check_comp_ch(cch, 'Reference gradiometer')
+                    # _check_comp_ch(cch, 'Reference gradiometer')
                     ch['coil_type'] = FIFF.FIFFV_COIL_CTF_REF_GRAD
                 nref += 1
                 ch['logno'] = nref
