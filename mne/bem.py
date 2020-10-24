@@ -278,7 +278,6 @@ def _fwd_bem_linear_collocation_solution(bem):
     # first, add surface geometries
     for surf in bem['surfs']:
         _check_complete_surface(surf)
-
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
     coeff = _fwd_bem_lin_pot_coeff(bem['surfs'])

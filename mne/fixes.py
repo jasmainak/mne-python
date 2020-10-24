@@ -949,12 +949,13 @@ def _get_status(checks):
 # Numba (optional requirement)
 
 # Here we choose different defaults to speed things up by default
+"""
 try:
     import numba
     if LooseVersion(numba.__version__) < LooseVersion('0.40'):
         raise ImportError
     prange = numba.prange
-    def jit(nopython=True, nogil=True, fastmath=True, cache=True,
+    def jit(nopython=False, nogil=True, fastmath=True, cache=True,
             **kwargs):  # noqa
         return numba.jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
                          cache=cache, **kwargs)
@@ -962,7 +963,8 @@ except ImportError:
     has_numba = False
 else:
     has_numba = (os.getenv('MNE_USE_NUMBA', 'true').lower() == 'true')
-
+"""
+has_numba = False
 
 if not has_numba:
     def jit(**kwargs):  # noqa
