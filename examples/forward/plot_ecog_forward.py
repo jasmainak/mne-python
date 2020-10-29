@@ -1,6 +1,7 @@
 import os.path as op
 import mne
 from mne.datasets import sample
+
 data_path = sample.data_path()
 
 # the raw file containing the channel location + types
@@ -24,9 +25,9 @@ conductivity = (0.3, 0.006, 0.3)  # for three layers
 surfs = mne.make_bem_model(subject='sample', ico=4,
                            conductivity=conductivity,
                            subjects_dir=subjects_dir)
-# bem = mne.make_bem_solution(surfs)
+bem = mne.make_bem_solution(surfs)
 
-# code for ECoG forward follows
+# code for ECoG/sEEG forward follows
 import numpy as np
 from mne.bem import _lin_pot_coeff, _check_complete_surface
 
@@ -40,7 +41,6 @@ offsets = np.cumsum(np.concatenate(([0], nps)))
 
 sigma = np.r_[0.0, conductivity]
 
-v_tot = np.zeros((len(els),))
 for idx, surf in enumerate(surfs):
     _check_complete_surface(surf)  # needed to get tri_area of decimated surf
     o1, o2 = offsets[idx], offsets[idx + 1]
@@ -50,20 +50,44 @@ for idx, surf in enumerate(surfs):
         tri_nn = surf['tri_nn'][k]
         tri = surf['tris'][k]
         coeff = _lin_pot_coeff(els, tri_rr, tri_nn, tri_area)
-        coeffs[:, offsets[o1:o2]][:, tri] -= coeff
+        coeffs[:, o1:o2][:, tri] -= coeff
 
-    # see _bem_specify_coils
-    v_surf = np.dot(coeff, bem['solution'][o1:o2])
-    v_surf *= (sigma[idx + 1] - sigma[idx])  # check
-    v_tot += v_surf
-# sigmas = # get sigmas according to els
-v_tot *= -sigmas / (4 * np.pi)
+    coeffs[:, o1:o2] *= bem['field_mult'][idx]  # sigma+ - sigma-
 
-# _get_inf_pots
+# similar to _bem_specify_coils
+sol = np.dot(coeffs, bem['solution'])
 
-# use _CheckInside()(els) for getting sigma
+# source_mult = 2. / (sigma+ - sigma-)
+# mults.shape = (1, n_surf_vertices)
+mults = np.repeat(bem['source_mult'] / (-4.0 * np.pi),
+                  [len(s['rr']) for s in bem['surfs']])[np.newaxis, :]
+sol *= mults
 
-sdfdfdf
-fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src, bem=bem,
-                                meg=True, eeg=False, mindist=5.0, n_jobs=1,
-                                verbose=True)
+# add 1/sigma(r) ??
+from mne.surface import _CheckInside
+check_insides = [_CheckInside(surf) for surf in surfs]
+for el_idx, el in enumerate(els):
+    # go from inside to outside.
+    # if that's how conductivities are arranged?
+    for sigma, check_inside in zip(conductivity[::-1], check_insides[::-1]):
+        # check_inside accepts vector, so there might be
+        # a better approach but let's go with dumb approach first
+        if check_inside(el[None, :])[0]:
+            sol[el_idx] += 1. / sigma
+            break
+
+
+# get the final gain matrix?
+from mne.transforms import read_trans, apply_trans
+from mne.forward._compute_forward import _bem_inf_pots
+
+trans = read_trans(trans)
+rr = np.concatenate([s['rr'][s['vertno']] for s in src])
+mri_rr = np.ascontiguousarray(apply_trans(trans, rr))
+
+bem_rr = np.concatenate([s['rr'] for s in bem['surfs']])
+mri_Q = trans['trans'][:3, :3].T
+
+v0s = _bem_inf_pots(mri_rr, bem_rr, mri_Q)
+v0s = v0s.reshape(-1, v0s.shape[2])
+G = np.dot(v0s, sol.T)
