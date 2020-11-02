@@ -36,6 +36,20 @@ els = els[:5]  # random points between 2 surfs for testing
 
 nps = [surf['np'] for surf in surfs]
 np_tot = sum(nps)
+
+from mne.surface import _CheckInside
+check_insides = [_CheckInside(surf) for surf in surfs]
+el_mults = np.zeros((len(els), 1))
+for el_idx, el in enumerate(els):
+    # go from inside to outside.
+    # if that's how conductivities are arranged?
+    for sigma, check_inside in zip(conductivity[::-1], check_insides[::-1]):
+        # check_inside accepts vector, so there might be
+        # a better approach but let's go with dumb approach first
+        if check_inside(el[None, :])[0]:
+            el_mults[el_idx] = 1. / sigma
+            break
+
 coeffs = np.zeros((len(els), np_tot))
 offsets = np.cumsum(np.concatenate(([0], nps)))
 
@@ -53,29 +67,10 @@ for idx, surf in enumerate(surfs):
         coeffs[:, o1:o2][:, tri] -= coeff
 
     coeffs[:, o1:o2] *= bem['field_mult'][idx]  # sigma+ - sigma-
+coeffs *= el_mults / (4.0 * np.pi)  # array broadcasting happens here
 
 # similar to _bem_specify_coils
 sol = np.dot(coeffs, bem['solution'])
-
-# source_mult = 2. / (sigma+ - sigma-)
-# mults.shape = (1, n_surf_vertices)
-mults = np.repeat(bem['source_mult'] / (-4.0 * np.pi),
-                  [len(s['rr']) for s in bem['surfs']])[np.newaxis, :]
-sol *= mults
-
-# add 1/sigma(r) ??
-from mne.surface import _CheckInside
-check_insides = [_CheckInside(surf) for surf in surfs]
-for el_idx, el in enumerate(els):
-    # go from inside to outside.
-    # if that's how conductivities are arranged?
-    for sigma, check_inside in zip(conductivity[::-1], check_insides[::-1]):
-        # check_inside accepts vector, so there might be
-        # a better approach but let's go with dumb approach first
-        if check_inside(el[None, :])[0]:
-            sol[el_idx] += 1. / sigma
-            break
-
 
 # get the final gain matrix?
 from mne.transforms import read_trans, apply_trans
@@ -88,6 +83,11 @@ mri_rr = np.ascontiguousarray(apply_trans(trans, rr))
 bem_rr = np.concatenate([s['rr'] for s in bem['surfs']])
 mri_Q = trans['trans'][:3, :3].T
 
-v0s = _bem_inf_pots(mri_rr, bem_rr, mri_Q)
+# XXX: is the 1/4*pi term correct?
+v0s = _bem_inf_pots(mri_rr, bem_rr, mri_Q) / (4.0 * np.pi)
 v0s = v0s.reshape(-1, v0s.shape[2])
 G = np.dot(v0s, sol.T)
+
+v0_els = _bem_inf_pots(mri_rr, els, mri_Q) / (4.0 * np.pi)
+v0_els = v0_els.reshape(-1, v0_els.shape[2])
+G += v0_els * el_mults.T
